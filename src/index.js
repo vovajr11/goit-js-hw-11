@@ -1,14 +1,18 @@
 import './sass/main.scss';
-import { Notify } from 'notiflix/build/notiflix-notify-aio';
+import Notiflix from 'notiflix';
+import SimpleLightbox from 'simplelightbox';
+import 'simplelightbox/dist/simple-lightbox.min.css';
 import PhotoApi from './utils/photo-api-service';
+import LoadMoreBtn from './components/load-more-btn';
 import getRefs from './utils/get-refs';
 
 const refs = getRefs();
+const galleryLightbox = new SimpleLightbox('.galleryItem a');
 const photoAPIService = new PhotoApi();
+const loadMoreBtn = new LoadMoreBtn();
 
-refs.loadMoreBtn.style.display = 'none';
 refs.searchForm.addEventListener('submit', onSearchForm);
-refs.loadMoreBtn.addEventListener('click', requestForPictures);
+refs.loadMoreBtn.addEventListener('click', loadMorePictures);
 
 function onSearchForm(evt) {
   evt.preventDefault();
@@ -18,22 +22,34 @@ function onSearchForm(evt) {
 
   photoAPIService.resetPage();
   clearPhotosList();
-  requestForPictures();
+
+  photoAPIService.requestPhoto().then(data => {
+    if (data.total === 0) {
+      return findPictureErorr();
+    }
+
+    renderPhotoCard(data);
+    Notiflix.Notify.success(`Hooray! We found ${data.totalHits} images.`);
+    loadMoreBtn.showBtnLoadMore();
+  });
+
+  loadMoreBtn.hideBtnLoadMore();
 }
 
-function requestForPictures() {
+function loadMorePictures() {
   photoAPIService
     .requestPhoto()
-    .then(({ data }) => {
-      if (data.total === 0) {
-        throw new Error('BAD REQUEST !!!');
-      }
-
-      photoAPIService.totalPictures = data.total;
-
-      renderPhotoCard(data);
+    .then(res => {
+      renderPhotoCard(res);
+      const { height: cardHeight } = document
+        .querySelector('.gallery')
+        .firstElementChild.getBoundingClientRect();
+      console.log(cardHeight, 'cardHeight');
+      window.scrollBy({
+        top: cardHeight * 2,
+        behavior: 'smooth',
+      });
     })
-    .catch(findPictureErorr)
     .finally(() => refs.searchForm.reset());
 }
 
@@ -41,42 +57,49 @@ function renderPhotoCard(photoData) {
   const markup = photoData.hits
     .map(
       ({ webformatURL, largeImageURL, tags, likes, views, comments, downloads }) => `
-    <div class="photo-card">
-      <img src="${webformatURL}" alt="${tags}" loading="lazy" />
-      <div class="info">
-        <p class="info-item">
-          Likes <span>${likes}</span>
-        </p>
-        <p class="info-item">
-          Views <span>${views}</span>
-        </p>
-        <p class="info-item">
-          Comments <span>${comments}</span>
-        </p>
-        <p class="info-item">
-          Downloads <span>${downloads}</span>
-        </p>
+      <div class="galleryItem">
+        <a href="${largeImageURL}">
+          <img src="${webformatURL}" alt="${tags}" loading="lazy" />
+          <div class="info">
+            <p class="info-item">
+              Likes <span>${likes}</span>
+            </p>
+            <p class="info-item">
+              Views <span>${views}</span>
+            </p>
+            <p class="info-item">
+              Comments <span>${comments}</span>
+            </p>
+            <p class="info-item">
+              Downloads <span>${downloads}</span>
+            </p>
+          </div>
+        </a>
       </div>
-    </div>
     `,
     )
     .join('');
 
-  if (photoAPIService.totalNumberFreePictures === 500) {
-    Notify.info("We're sorry, but you've reached the end of search results.");
+  const totalHits = photoData.totalHits;
+  const totalPages = Math.ceil(totalHits / photoAPIService.perPage);
 
-    refs.galleryList.insertAdjacentHTML('beforeend', markup);
-    return (refs.loadMoreBtn.style.display = 'none');
+  refs.galleryList.insertAdjacentHTML('beforeend', markup);
+  galleryLightbox.refresh();
+
+  if (photoAPIService.page > totalPages) {
+    Notiflix.Notify.warning("We're sorry, but you've reached the end of search results.");
+    return loadMoreBtn.hideBtnLoadMore();
   }
 
-  refs.loadMoreBtn.style.display = 'block';
-  refs.galleryList.insertAdjacentHTML('beforeend', markup);
-}
-
-function findPictureErorr() {
-  Notify.failure('Sorry, there are no images matching your search query. Please try again.');
+  loadMoreBtn.showBtnLoadMore();
 }
 
 function clearPhotosList() {
   refs.galleryList.innerHTML = '';
+}
+
+function findPictureErorr() {
+  Notiflix.Notify.failure(
+    'Sorry, there are no images matching your search query. Please try again.',
+  );
 }

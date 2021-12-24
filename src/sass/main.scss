@@ -1,7 +1,44 @@
-/*
- * Главный файл стилей.
- * Все паршалы подключаются сюда.
- */
+@import './form';
+@import './loadMoreBtn';
 
-// Стили для файла с примером HTML-фрагмента
-@import './example';
+a {
+  text-decoration: none;
+}
+
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-gap: 20px;
+  max-width: 1440px;
+  padding: 0;
+  list-style: none;
+  margin: 0 auto;
+
+  .galleryItem {
+    position: relative;
+    box-shadow: 4px 4px 8px 0px rgba(34, 60, 80, 0.2);
+    border-radius: 5px;
+
+    img {
+      height: 250px;
+      width: 100%;
+      object-fit: cover;
+    }
+  }
+}
+
+.info {
+  display: flex;
+  justify-content: space-around;
+  text-align: center;
+  color: black;
+
+  .info-item {
+    font-weight: 700;
+
+    span {
+      font-weight: 400;
+      display: block;
+    }
+  }
+}

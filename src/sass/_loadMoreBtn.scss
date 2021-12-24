@@ -1,0 +1,15 @@
+.load-more {
+  display: none;
+  border: none;
+  padding: 10px 15px;
+  font-size: 20px;
+  border-radius: 5px;
+  background-color: #f44336;
+  color: white;
+  cursor: pointer;
+  margin: 30px auto 20px;
+}
+
+.active {
+  display: block;
+}
