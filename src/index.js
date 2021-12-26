@@ -18,22 +18,30 @@ function onSearchForm(evt) {
   evt.preventDefault();
 
   const form = evt.currentTarget;
-  photoAPIService.query = form.elements.searchQuery.value;
+  const searchValue = form.elements.searchQuery.value.trim();
 
-  photoAPIService.resetPage();
-  clearPhotosList();
+  if (searchValue.length > 0) {
+    photoAPIService.query = searchValue;
+    photoAPIService.resetPage();
+    clearPhotosList();
 
-  photoAPIService.requestPhoto().then(data => {
-    if (data.total === 0) {
-      return findPictureErorr();
-    }
+    photoAPIService.requestPhoto().then(data => {
+      if (data.total === 0) {
+        return findPictureErorr();
+      }
 
-    renderPhotoCard(data);
-    Notiflix.Notify.success(`Hooray! We found ${data.totalHits} images.`);
-    loadMoreBtn.showBtnLoadMore();
-  });
+      if (data.total > photoAPIService.perPage) {
+        loadMoreBtn.showBtnLoadMore();
+      }
 
-  loadMoreBtn.hideBtnLoadMore();
+      renderPhotoCard(data);
+      Notiflix.Notify.success(`Hooray! We found ${data.totalHits} images.`);
+    });
+
+    loadMoreBtn.hideBtnLoadMore();
+  } else {
+    Notiflix.Notify.warning('You have not entered anything');
+  }
 }
 
 function loadMorePictures() {
@@ -44,7 +52,7 @@ function loadMorePictures() {
       const { height: cardHeight } = document
         .querySelector('.gallery')
         .firstElementChild.getBoundingClientRect();
-      console.log(cardHeight, 'cardHeight');
+
       window.scrollBy({
         top: cardHeight * 2,
         behavior: 'smooth',
